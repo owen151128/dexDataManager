@@ -82,12 +82,13 @@ public class DexUtil {
         int dexCount = 0;
         Pair<Map<String, Long>, List<String>, Integer> resultPair;
         File[] fileArray = targetDirectory.toFile().listFiles();
+        ByteReadUtil byteReadUtil;
 
         int index = 2;
 
         if (fileArray != null) {
             for (File f : fileArray) {
-                ByteReadUtil byteReadUtil = new ByteReadUtil(f.getAbsolutePath());
+                byteReadUtil = new ByteReadUtil(f.getAbsolutePath());
                 long methodIds = byteReadUtil.readBytes(METHOD_IDS_ADDRESS, METHOD_IDS_OFFSET);
 
                 if (f.getName().equals(MAIN_DEX_PREFIX)) {
@@ -104,7 +105,7 @@ public class DexUtil {
                     resultMap.put(SMALI_PREFIX + index, byteReadUtil.readBytes(METHOD_IDS_ADDRESS, METHOD_IDS_OFFSET));
                     index++;
                 }
-
+                byteReadUtil.close();
                 dexCount++;
             }
         }
