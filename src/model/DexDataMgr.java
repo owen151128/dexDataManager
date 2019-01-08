@@ -7,7 +7,7 @@ import java.util.Map;
  * Dex Data Manager class
  */
 public class DexDataMgr {
-    private static DexDataMgr instance;
+    private static DexDataMgr instance = null;
 
     private Map<String, Long> dexMap = null;
     private List<String> largeDexList = null;

@@ -61,13 +61,8 @@ public class ByteReadUtil {
             byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
             filePointer.seek(address);
             file.read(byteBuffer);
-
             byteBuffer.flip();
-            byte[] byteArray = new byte[byteBuffer.limit()];
-            byteBuffer.get(byteArray);
-            ArrayUtil.reverse(byteArray);
 
-            byteBuffer.rewind();
             result = byteBuffer.getInt();
 
             byteBuffer.clear();
