@@ -1,6 +1,8 @@
 package util;
 
-import model.Pair;
+import model.DexMethodIds;
+import model.dex.DexAddress;
+import sun.jvm.hotspot.debugger.Address;
 
 import java.io.*;
 import java.nio.file.*;
@@ -16,8 +18,6 @@ import java.util.zip.ZipInputStream;
 public class DexUtil {
     private static final Logger logUtil = Logger.getLogger(DexUtil.class.getName());
 
-    private static final int METHOD_IDS_ADDRESS = 0x58;
-    private static final int METHOD_IDS_OFFSET = 4;
     private static final int LIMIT_METHOD_IDS = 55000;
 
     private static final String DEX_EXTENSION = ".dex";
@@ -40,7 +40,8 @@ public class DexUtil {
      * @param targetDirectory extract target path
      * @return if success, return true
      */
-    public static boolean dexExtractFromApk(Path targetApk, Path targetDirectory) {
+    public static List<Path> dexExtractFromApk(Path targetApk, Path targetDirectory) {
+        List<Path> resultList = new ArrayList<>();
         try {
             ZipInputStream zis = new ZipInputStream(Files.newInputStream(targetApk));
             ZipEntry entry;
@@ -59,28 +60,29 @@ public class DexUtil {
 
                     Files.createDirectories(parentDirectory);
                     Files.copy(zis, extractTarget);
+                    resultList.add(extractTarget);
                 }
             }
         } catch (IOException e) {
             logUtil.log(Level.SEVERE, ERR_APK_EXTRACT_IO, e);
 
-            return false;
+            return null;
         }
 
-        return true;
+        return resultList;
     }
 
     /**
-     * Return smaliHashMap and LargeDexList pair, dexMap's key is smali's name, value is dex's methodIds
+     * Get MethodInfo
      *
-     * @param targetDirectory dexExtract path
-     * @return smaliHashMap and LargeDexList pair, dexMap's key is smali's name, value is dex's methodIds
+     * @param targetDirectory dexFile's directory
+     * @return DexMethodIds
      */
-    public static Pair<Map<String, Long>, List<String>, Integer> getMethodInfo(Path targetDirectory) {
-        Map<String, Long> resultMap = new HashMap<>();
+    public static DexMethodIds getMethodInfo(Path targetDirectory) {
+        Map<String, Integer> resultMap = new HashMap<>();
         List<String> resultList = new ArrayList<>();
         int dexCount = 0;
-        Pair<Map<String, Long>, List<String>, Integer> resultPair;
+        DexMethodIds result = new DexMethodIds();
         File[] fileArray = targetDirectory.toFile().listFiles();
         ByteReadUtil byteReadUtil;
 
@@ -89,7 +91,7 @@ public class DexUtil {
         if (fileArray != null) {
             for (File f : fileArray) {
                 byteReadUtil = new ByteReadUtil(f.getAbsolutePath());
-                long methodIds = byteReadUtil.readBytes(METHOD_IDS_ADDRESS, METHOD_IDS_OFFSET);
+                int methodIds = byteReadUtil.readBytesToInt(DexAddress.STARTADDRESS.METHOD_IDS_SIZE);
 
                 if (f.getName().equals(MAIN_DEX_PREFIX)) {
                     if (methodIds > LIMIT_METHOD_IDS) {
@@ -102,7 +104,7 @@ public class DexUtil {
                         resultList.add(SMALI_PREFIX + index);
                     }
 
-                    resultMap.put(SMALI_PREFIX + index, byteReadUtil.readBytes(METHOD_IDS_ADDRESS, METHOD_IDS_OFFSET));
+                    resultMap.put(SMALI_PREFIX + index, byteReadUtil.readBytesToInt(DexAddress.STARTADDRESS.METHOD_IDS_SIZE));
                     index++;
                 }
                 byteReadUtil.close();
@@ -110,7 +112,10 @@ public class DexUtil {
             }
         }
 
-        resultPair = new Pair<>(resultMap, resultList, dexCount);
-        return resultPair;
+        result.setDexList(resultMap);
+        result.setLargeDexList(resultList);
+        result.setDexCount(dexCount);
+
+        return result;
     }
 }
